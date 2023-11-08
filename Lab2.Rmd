@@ -25,6 +25,7 @@ Computational Statistics 732A90
 *a.Derive the gradient and the Hessian matrix in dependence of x, y. Produce a contour plot of the function g.*
 
 \textcolor{red}{Answer:}
+Please reference Appendix two_dimensional.R, and below are plot of function g.
 
 ```{r, two_dimensional1, echo = FALSE}
 # function g to be maximized
@@ -64,7 +65,7 @@ deriv_y_22 <- function(x, y) {
 
 # hessian matrix for function g
 hessian_g <- function(x, y) {
-  matrix(c(deriv_x_11(x,y), deriv_x_12(x,y), deriv_x_12(x,y), deriv_y_22(x, y), nrow=2, ncol=2))
+  return(matrix(c(deriv_x_11(x,y), deriv_x_12(x,y), deriv_x_12(x,y), deriv_y_22(x,y)), nrow = 2, ncol = 2))
 }
 
 # produce a contour plot
@@ -88,20 +89,117 @@ contour(xgrid, ygrid, mgxy, nlevels=40)
 *b.Write an own algorithm based on the Newton method in order to find a local maximum of g*
 
 \textcolor{red}{Answer:}
+
+Please reference Appendix two_dimensional.R
+
 ```{r, two_dimensional2, echo = FALSE}
-newton_g <- function(x,y) {
-  
+# newton function
+newton_g <- function(x,y, eps=0.0001) {
+  xt <- c(x,y)
+  xt1 <- c(x,y) + 2
+
+  while( t(xt1 -xt) %*% (xt1 -xt) > eps) {
+    xt1 <- xt
+    xt <- xt1 - solve(hessian_g(xt[1] , xt[2])) %*% gradient(xt[1],xt[2])
+  }
+  return(xt)
 }
 ```
-
-
 
 *c.Use different starting values: use the three points (x, y) = (2, 0), (−1, −2), (0, 1) and a fourth point of your choice. Describe what happens when you run your algorithm for each of those starting values. If your algorithm converges to points (x, y), compute the gradient and the Hessian matrix at these points and decide about local maximum, minimum, saddle point, or neither of it. Did you find a global maximum for x, y ∈ [−3, 3]?*
 
 \textcolor{red}{Answer:}
+
+Please see below R results:
+
 ```{r, two_dimensional3, echo = FALSE}
+# check definiteness of a hessian matrix
+check_definiteness <- function(matrix) {
+  eigenvalues <- eigen(matrix)$values
+  if (all(eigenvalues > 0)) {
+    cat("This Hessian Matrix is positive definite.\n")
+  } else if (all(eigenvalues < 0)) {
+    cat("This Hessian Matrix is negative definite.\n")
+  } else {
+    cat("This Hessian Matrix is neither positive nor negative definite.\n")
+  }
+}
+
+# using different starting points for newton method
+cat("========================================================")
+converges_point1 <- newton_g(2,0)
+cat("1) using starting points: (x,y) =(2,0), the newton method coverges to point: \n")
+converges_point1
+
+grad_point1 <- gradient(converges_point1[1],converges_point1[2])
+cat("the corresponding gradient is: \n")
+grad_point1
+
+hessian_point1 <- hessian_g(converges_point1[1],converges_point1[2])
+cat("the corresponding hessian matrix is: \n")
+hessian_point1
+
+check_definiteness(hessian_point1)
+
+cat("========================================================")
+
+converges_point2 <- newton_g(-1,-2)
+cat("2) using starting points: (x,y) =(-1,-2) \n")
+converges_point2
+
+grad_point2 <- gradient(converges_point2[1],converges_point2[2])
+cat("the corresponding gradient is: \n")
+grad_point2
+
+hessian_point2 <- hessian_g(converges_point2[1],converges_point2[2])
+cat("the corresponding hessian matrix is: \n")
+hessian_point2
+
+check_definiteness(hessian_point2)
+
+cat("========================================================")
+
+converges_point3 <- newton_g(0,1)
+cat("3) using starting points: (x,y) =(0,1) \n")
+converges_point3
+
+grad_point3 <- gradient(converges_point3[1],converges_point3[2])
+cat("the corresponding gradient is: \n")
+grad_point3
+
+hessian_point3 <- hessian_g(converges_point3[1],converges_point3[2])
+cat("the corresponding hessian matrix is: \n")
+hessian_point3
+
+check_definiteness(hessian_point3)
+
+cat("========================================================")
+
+converges_point4 <- newton_g(1,-1)
+cat("4) using starting points: (x,y) =(1,-1) \n")
+converges_point4
+
+grad_point4 <- gradient(converges_point4[1],converges_point4[2])
+cat("the corresponding gradient is: \n")
+grad_point4
+
+hessian_point4 <- hessian_g(converges_point4[1],converges_point4[2])
+cat("the corresponding hessian matrix is: \n")
+hessian_point4
+
+check_definiteness(hessian_point4)
 
 ```
+
+According to above R results for 4 different starting points, it's easily to get the conclusion:
+
+1) when starting point is (2,0), the coveraged point is (1.0000256,-0.9999341) which is local maximum point since the Hessian matrix at that point is negative definite.
+
+2) when starting point is (-1,-2), the coveraged point is (1.166791e-11,1.000000e+00) which is saddle point since the Hessian matrix at that point is neither positive or negative definite.
+
+3) when starting point is (0,1), the coveraged point is (0,1) which is saddle point since the Hessian matrix at that point is neither positive or negative definite.
+
+4) when starting point is (1,-1), the coveraged point is (1,-1) which is local maximum since the Hessian matrix at that point is negative definite.
 
 
 *d.What would be the advantages and disadvantages when you would run a steepest ascent algorithm instead of the Newton algorithm?*
