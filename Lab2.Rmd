@@ -193,13 +193,13 @@ check_definiteness(hessian_point4)
 
 According to above R results for 4 different starting points, it's easily to get the conclusion:
 
-1) when starting point is (2,0), the coveraged point is (1.0000256,-0.9999341) which is local maximum point since the Hessian matrix at that point is negative definite.
+1) when starting point is (2,0), the converaged point is (1.0000256,-0.9999341) which is local maximum point since the Hessian matrix at that point is negative definite.
 
-2) when starting point is (-1,-2), the coveraged point is (1.166791e-11,1.000000e+00) which is saddle point since the Hessian matrix at that point is neither positive or negative definite.
+2) when starting point is (-1,-2), the converaged point is (1.166791e-11,1.000000e+00) which is saddle point since the Hessian matrix at that point is neither positive or negative definite.
 
-3) when starting point is (0,1), the coveraged point is (0,1) which is saddle point since the Hessian matrix at that point is neither positive or negative definite.
+3) when starting point is (0,1), the converaged point is (0,1) which is saddle point since the Hessian matrix at that point is neither positive or negative definite.
 
-4) when starting point is (1,-1), the coveraged point is (1,-1) which is local maximum since the Hessian matrix at that point is negative definite.
+4) when starting point is (1,-1), the converaged point is (1,-1) which is local maximum since the Hessian matrix at that point is negative definite.
 
 
 *d.What would be the advantages and disadvantages when you would run a steepest ascent algorithm instead of the Newton algorithm?*
@@ -220,17 +220,93 @@ g <- function(x,y) {
 
 \textcolor{red}{Answer:}
 
+```{r, ml_estimator1, echo = FALSE}
+# Define the log-likelihood function
+log_likelihood <- function(beta, x, y) {
+  p <- 1 / (1 + exp(-beta[1] - beta[2]*x))
+  sum(y * log(p) + (1 - y) * log(1 - p))
+}
+
+# Define the gradient of the log-likelihood function
+gradient <- function(beta, x, y) {
+  p <- 1 / (1 + exp(-beta[1] - beta[2]*x))
+  db0 <- sum(y - p)
+  db1 <- sum((y - p) * x)
+  c(db0, db1)
+}
+
+# Steepest ascent function
+steepest_ascent <- function(beta_start, x, y, tol=1e-5, alpha0=1) {
+  beta <- beta_start
+  log_likelihood_count <- 0
+  gradient_count <- 0
+  conv <- 999
+  while (conv > tol) {
+    alpha <- alpha0
+    beta_old <- beta
+    beta <- beta_old + alpha * gradient(beta_old, x, y)
+    gradient_count <- gradient_count + 1
+    while (log_likelihood(beta, x , y) < log_likelihood(beta_old, x , y)) {
+      alpha <- alpha/2
+      beta <- beta_old + alpha * gradient(beta_old, x , y)
+      gradient_count <- gradient_count + 1
+      log_likelihood_count <- log_likelihood_count + 2
+    }
+    conv <- sum((beta - beta_old) * (beta - beta_old))
+  }
+  result <- list(coefficients=c(beta0=beta[1],beta1=beta[2]), counts=c(func_count=log_likelihood_count, gradien_count=gradient_count))
+  return(result)
+}
+
+```
+
 *b.Compute the ML-estimator with the function from a. for the data (xi, yi) above. Use a stopping criterion such that you can trust five digits of both parameter estimates for β0 and β1. Use the starting value (β0, β1) = (−0.2, 1). The exact way to use backtracking can be varied. Try two variants and compare number of function and gradient evaluation done until convergence.*
 
 \textcolor{red}{Answer:}
+
+```{r, ml_estimator2, echo = FALSE}
+# drug and placebo data
+x <- c(0, 0, 0, 0.1, 0.1, 0.3, 0.3, 0.9, 0.9, 0.9)
+y <- c(0, 0, 1, 0, 1, 1, 1, 0, 1, 1)
+
+# Initial values for beta
+beta_start <- c(-0.2, 1)
+
+# Compute the ML estimator
+ml_estimator_result <- steepest_ascent(beta_start, x, y)
+
+# Print the results
+print(ml_estimator_result)
+
+```
 
 *c.Use now the function optim with both the BFGS and the Nelder-Mead algorithm. Do you obtain the same results compared with b.? Is there any difference in the precision of the result? Compare the number of function and gradient evaluations which are given in the standard output of optim.*
 
 \textcolor{red}{Answer:}
 
+```{r, ml_estimator3, echo = FALSE}
+# BFGS
+result_bfgs <- optim(beta_start, log_likelihood, gradient, x=x, y=y, method="BFGS", control = list(fnscale = -1))
+print(result_bfgs)
+
+# Nelder-Mead
+result_nelder <- optim(beta_start, log_likelihood, gradient, x=x, y=y, method="Nelder-Mead", control = list(fnscale = -1))
+print(result_nelder)
+
+```
+
 *d.Use the function glm in R to obtain an ML-solution and compare it with your results before.*
 
 \textcolor{red}{Answer:}
+
+```{r, ml_estimator4, echo = FALSE}
+# Fit the model
+fit <- glm(y ~ x, family=binomial(link="logit"))
+
+# Print the results
+print(summary(fit))
+
+```
 
 
 # Appendix: 
@@ -241,3 +317,9 @@ two_dimensional.R
 
 ```
 
+
+ml_estimator.R
+
+```{r ref.label=c('ml_estimator1', 'ml_estimator2', 'ml_estimator3', 'ml_estimator4'), echo=TRUE, eval=FALSE}
+
+```
