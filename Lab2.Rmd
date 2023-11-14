@@ -193,32 +193,73 @@ check_definiteness(hessian_point4)
 
 According to above R results for 4 different starting points, it's easily to get the conclusion:
 
-1) when starting point is (2,0), the converaged point is (1.0000256,-0.9999341) which is local maximum point since the Hessian matrix at that point is negative definite.
+1) when starting point is (2,0), the converging point is (1.0000256,-0.9999341) which is local maximum point since the Hessian matrix at that point is negative definite.
 
-2) when starting point is (-1,-2), the converaged point is (1.166791e-11,1.000000e+00) which is saddle point since the Hessian matrix at that point is neither positive or negative definite.
+2) when starting point is (-1,-2), the converging point is (1.166791e-11,1.000000e+00) which is saddle point since the Hessian matrix at that point is neither positive or negative definite.
 
-3) when starting point is (0,1), the converaged point is (0,1) which is saddle point since the Hessian matrix at that point is neither positive or negative definite.
+3) when starting point is (0,1), the converging point is (0,1) which is saddle point since the Hessian matrix at that point is neither positive or negative definite.
 
-4) when starting point is (1,-1), the converaged point is (1,-1) which is local maximum since the Hessian matrix at that point is negative definite.
+4) when starting point is (1,-1), the converging point is (1,-1) which is local maximum since the Hessian matrix at that point is negative definite.
 
 
 *d.What would be the advantages and disadvantages when you would run a steepest ascent algorithm instead of the Newton algorithm?*
 
 \textcolor{red}{Answer:}
 
+Please see below R results for steepest ascent algorithm, compared with Newton algorithm,
+
+Advantages:
+
+1) Steepest ascent algorithm only requires the computation of first derivatives, while Newton requires the second derivaties as well;
+
+2) Steepest ascent algorithm can compute more accurately when to get local maximum. For example, when starting point is (-1,-2), newton will converge to (1.166791e-11,1.000000e+00) which is a saddle point, while steepest ascent can converge to (0.99860093,-1.0031322) which is a local maximum. Besides, when starting point is nearly to a saddle point, steepest ascent can compute a local maximum point, while Newton will converge to a saddle point.
+
+3) Steepest ascent algorithm can compute efficiently, it is well-used in machine learning.
+
+Disadvantages:
+
+1) Steepest ascent algorithm generally requires more iterations.
+
+2) Steepest ascent algorithm is less prone to local minima but in case it tends to local minima, it has no noisy step hence it will not be able to come out of it.
+
+3) Steepest ascent algorithm needs more memory to load the complete data into memory at once.
+
 ```{r, two_dimensional4, echo = FALSE}
-g <- function(x,y) {
-  
+# Steepest ascent algorithm for g function
+steepest_ascent_g <- function(x, y, tol=1e-5, alpha0=1) {
+  xt <- c(x,y)
+  conv <- 999
+  while (conv > tol) {
+    alpha <- alpha0
+    xt1 <- xt
+    xt <- xt1 + alpha * gradient(xt1[1],xt1[2])
+    while (g(xt[1],xt[2]) < g(xt1[1],xt1[2])) {
+      alpha <- alpha/2
+      xt <- xt1 + alpha * gradient(xt1[1],xt1[2])
+    }
+    conv <- sum((xt - xt1) * (xt - xt1))
+  }
+  return(xt)
 }
+
+cat("1) using starting points: (x,y) =(2,0), the steepest ascent method coverges to point: \n")
+steepest_ascent_g(2,0)
+cat("2) using starting points: (x,y) =(-1,-2), the steepest ascent method coverges to point: \n")
+steepest_ascent_g(-1,-2)
+cat("3) using starting points: (x,y) =(0,1), the steepest ascent method coverges to point: \n")
+steepest_ascent_g(0,1)
+cat("4) using starting points: (x,y) =(0.000099,0.9999), the steepest ascent method coverges to point: \n")
+steepest_ascent_g(0.000099,0.9999)
+
 ```
-
-
 
 # Question 2
 
-*a.Write a function for an ML-estimator for (β0, β1) using the steepest ascent method with a step-size reducing line search (back-tracking). For this, you can use and modify the code for the steepest ascent example from the lecture. The function should count the number of function and gradient evaluations.*
+*a.Write a function for an ML-estimator for $(β0, β1)$ using the steepest ascent method with a step-size reducing line search (back-tracking). For this, you can use and modify the code for the steepest ascent example from the lecture. The function should count the number of function and gradient evaluations.*
 
 \textcolor{red}{Answer:}
+
+Please reference Appendix ml_estimator.R
 
 ```{r, ml_estimator1, echo = FALSE}
 # Define the log-likelihood function
@@ -235,8 +276,8 @@ gradient <- function(beta, x, y) {
   c(db0, db1)
 }
 
-# Steepest ascent function
-steepest_ascent <- function(beta_start, x, y, tol=1e-5, alpha0=1) {
+# Steepest ascent function with constant alpha0 when new iteration
+steepest_ascent_constant <- function(beta_start, x, y, tol=1e-5, alpha0=1) {
   beta <- beta_start
   log_likelihood_count <- 0
   gradient_count <- 0
@@ -258,11 +299,36 @@ steepest_ascent <- function(beta_start, x, y, tol=1e-5, alpha0=1) {
   return(result)
 }
 
+
+# Steepest ascent function with decreasing alpha when new iteration 
+steepest_ascent_decrease <- function(beta_start, x, y, tol=1e-5, alpha0=1) {
+  beta <- beta_start
+  log_likelihood_count <- 0
+  gradient_count <- 0
+  conv <- 999
+  alpha <- alpha0
+  while (conv > tol) {
+    beta_old <- beta
+    beta <- beta_old + alpha * gradient(beta_old, x, y)
+    gradient_count <- gradient_count + 1
+    while (log_likelihood(beta, x , y) < log_likelihood(beta_old, x , y)) {
+      alpha <- alpha/2
+      beta <- beta_old + alpha * gradient(beta_old, x , y)
+      gradient_count <- gradient_count + 1
+      log_likelihood_count <- log_likelihood_count + 2
+    }
+    conv <- sum((beta - beta_old) * (beta - beta_old))
+  }
+  result <- list(coefficients=c(beta0=beta[1],beta1=beta[2]), counts=c(func_count=log_likelihood_count, gradien_count=gradient_count))
+  return(result)
+}
 ```
 
-*b.Compute the ML-estimator with the function from a. for the data (xi, yi) above. Use a stopping criterion such that you can trust five digits of both parameter estimates for β0 and β1. Use the starting value (β0, β1) = (−0.2, 1). The exact way to use backtracking can be varied. Try two variants and compare number of function and gradient evaluation done until convergence.*
+*b.Compute the ML-estimator with the function from a. for the data (xi, yi) above. Use a stopping criterion such that you can trust five digits of both parameter estimates for $β0$ and $β1$. Use the starting value $(β0, β1)$ = (−0.2, 1). The exact way to use backtracking can be varied. Try two variants and compare number of function and gradient evaluation done until convergence.*
 
 \textcolor{red}{Answer:}
+
+Please see below R results.
 
 ```{r, ml_estimator2, echo = FALSE}
 # drug and placebo data
@@ -273,10 +339,15 @@ y <- c(0, 0, 1, 0, 1, 1, 1, 0, 1, 1)
 beta_start <- c(-0.2, 1)
 
 # Compute the ML estimator
-ml_estimator_result <- steepest_ascent(beta_start, x, y)
+steepest_ascent_constant_result <- steepest_ascent_constant(beta_start, x, y)
+
+steepest_ascent_decrease_result <- steepest_ascent_decrease(beta_start, x, y)
 
 # Print the results
-print(ml_estimator_result)
+cat("=====Steepest ascent algorithm with constant alpha0 (alpha(t+1)=alpha0) when new iteration====== \n")
+print(steepest_ascent_constant_result)
+cat("=====Steepest ascent algorithm with decreasing alpha (alpha(t+1)=alpha(t)) when new iteration====== \n")
+print(steepest_ascent_decrease_result)
 
 ```
 
@@ -284,13 +355,29 @@ print(ml_estimator_result)
 
 \textcolor{red}{Answer:}
 
+Please see below R results. It shows that the results computed by both BFGS and Nelder-Mead algorithm are very close, it also quite close to the results computed by Steepest ascent except beta0 is a little smaller when using steepest ascent. Besides, when it refers to the number of function and gradient evaluations, BFGS performs more efficient with less iterations, while Nelder-Mead requires more iterations.
+
+```{r, message = FALSE, echo = FALSE}
+library(knitr)
+
+compare_df <- data.frame(algorithm = c("Steepest Ascent", "BFGS", "Nelder-Mead"),
+                 beta0 = c(-0.007299539, -0.009356126,-0.009423433),
+                 beta1 = c(1.254971983,1.262812832,1.262738266),
+                 count_of_function = c(14,12,47),
+                 count_of_gradient = c(21,8,NA))
+
+kable(compare_df)
+```
+
 ```{r, ml_estimator3, echo = FALSE}
 # BFGS
 result_bfgs <- optim(beta_start, log_likelihood, gradient, x=x, y=y, method="BFGS", control = list(fnscale = -1))
+cat("=====Using BFGS optimal get below results:====== \n")
 print(result_bfgs)
 
 # Nelder-Mead
 result_nelder <- optim(beta_start, log_likelihood, gradient, x=x, y=y, method="Nelder-Mead", control = list(fnscale = -1))
+cat("=====Using Nelder-Mead optimal get below results:====== \n")
 print(result_nelder)
 
 ```
@@ -298,6 +385,8 @@ print(result_nelder)
 *d.Use the function glm in R to obtain an ML-solution and compare it with your results before.*
 
 \textcolor{red}{Answer:}
+
+Please see below R results. It shows that glm function works same as BFGS, it computes the nearly same value for $β0$ and $β1$. 
 
 ```{r, ml_estimator4, echo = FALSE}
 # Fit the model

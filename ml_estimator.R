@@ -12,14 +12,37 @@ gradient <- function(beta, x, y) {
   c(db0, db1)
 }
 
-# Steepest ascent function
-steepest_ascent <- function(beta_start, x, y, tol=1e-5, alpha0=1) {
+# Steepest ascent function with alpha0 when new iteration
+steepest_ascent_constant <- function(beta_start, x, y, tol=1e-5, alpha0=1) {
   beta <- beta_start
   log_likelihood_count <- 0
   gradient_count <- 0
   conv <- 999
   while (conv > tol) {
     alpha <- alpha0
+    beta_old <- beta
+    beta <- beta_old + alpha * gradient(beta_old, x, y)
+    gradient_count <- gradient_count + 1
+    while (log_likelihood(beta, x , y) < log_likelihood(beta_old, x , y)) {
+      alpha <- alpha/2
+      beta <- beta_old + alpha * gradient(beta_old, x , y)
+      gradient_count <- gradient_count + 1
+      log_likelihood_count <- log_likelihood_count + 2
+    }
+    conv <- sum((beta - beta_old) * (beta - beta_old))
+  }
+  result <- list(coefficients=c(beta0=beta[1],beta1=beta[2]), counts=c(func_count=log_likelihood_count, gradien_count=gradient_count))
+  return(result)
+}
+
+# Steepest ascent function with decreasing alpha when new iteration
+steepest_ascent_decrease <- function(beta_start, x, y, tol=1e-5, alpha0=1) {
+  beta <- beta_start
+  log_likelihood_count <- 0
+  gradient_count <- 0
+  conv <- 999
+  alpha <- alpha0
+  while (conv > tol) {
     beta_old <- beta
     beta <- beta_old + alpha * gradient(beta_old, x, y)
     gradient_count <- gradient_count + 1
@@ -43,11 +66,15 @@ y <- c(0, 0, 1, 0, 1, 1, 1, 0, 1, 1)
 beta_start <- c(-0.2, 1)
 
 # Compute the ML estimator
-ml_estimator_result <- steepest_ascent(beta_start, x, y)
+steepest_ascent_constant_result <- steepest_ascent_constant(beta_start, x, y)
+
+steepest_ascent_decrease_result <- steepest_ascent_decrease(beta_start, x, y)
 
 # Print the results
-print(ml_estimator_result)
-
+cat("=====Using constant alpha when new iteration for steepest ascent algorithm====== \n")
+print(steepest_ascent_constant_result)
+cat("=====Using decrease alpha when new iteration for steepest ascent algorithm====== \n")
+print(steepest_ascent_decrease_result)
 
 
 # BFGS

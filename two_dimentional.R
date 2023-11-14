@@ -59,9 +59,9 @@ newton_g <- function(x,y, eps=0.0001) {
   xt <- c(x,y)
   xt1 <- c(x,y) + 2
 
-  while( t(xt1 -xt) %*% (xt1 -xt) > eps) {
+  while( t(xt -xt1) %*% (xt -xt1) > eps) {
     xt1 <- xt
-    xt <- xt1 - solve(hessian_g(xt[1] , xt[2])) %*% gradient(xt[1],xt[2])
+    xt <- xt1 - solve(hessian_g(xt1[1] , xt1[2])) %*% gradient(xt1[1],xt1[2])
   }
   return(xt)
 }
@@ -143,6 +143,28 @@ hessian_point4
 check_definiteness(hessian_point4)
 
 
+# Steepest ascent algorithm for g function
+steepest_ascent_g <- function(x, y, tol=1e-5, alpha0=1) {
+  xt <- c(x,y)
+  conv <- 999
+  while (conv > tol) {
+    alpha <- alpha0
+    xt1 <- xt
+    xt <- xt1 + alpha * gradient(xt1[1],xt1[2])
+    while (g(xt[1],xt[2]) < g(xt1[1],xt1[2])) {
+      alpha <- alpha/2
+      xt <- xt1 + alpha * gradient(xt1[1],xt1[2])
+    }
+    conv <- sum((xt - xt1) * (xt - xt1))
+  }
+  return(xt)
+}
 
-
-
+cat("1) using starting points: (x,y) =(2,0), the steepest ascent method coverges to point: \n")
+steepest_ascent_g(2,0)
+cat("2) using starting points: (x,y) =(-1,-2), the steepest ascent method coverges to point: \n")
+steepest_ascent_g(-1,-2)
+cat("3) using starting points: (x,y) =(0,1), the steepest ascent method coverges to point: \n")
+steepest_ascent_g(0,1)
+cat("4) using starting points: (x,y) =(1,-1), the steepest ascent method coverges to point: \n")
+steepest_ascent_g(1,-1)
